@@ -8,7 +8,7 @@ class GridCell
   boolean isStart;
   color currentColour;
   
-  int fCost;
+  int fCost = Integer.MAX_VALUE;
   GridCell from;
   
   public GridCell(int size, int xPos, int yPos, 
