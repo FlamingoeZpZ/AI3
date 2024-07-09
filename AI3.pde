@@ -5,7 +5,7 @@ GridCell[][] cells;
 ArrayList<GridCell> closed;
 ArrayList<GridCell> open;
 
-int maxIterations = 50;
+int maxIterations = 1000;
 int currentIteration = 0;
 boolean finishedPathfinding;
 
@@ -44,12 +44,9 @@ void setup()
   
   GridCell current = start;
   current.SetFCost(0, null);
-  
-  println("First");
-  
+    
   while (currentIteration < maxIterations)
   {
-    println("------------------ITERATION: " + currentIteration +"---------------------");
     currentIteration ++;
     
     int lowestFCost = open.get(0).fCost;
@@ -60,7 +57,6 @@ void setup()
     for (int i = 1; i < open.size(); i++)
     {
       //If the open node has a lower FCost
-      println("Comp: " + i + ": (" + open.get(i).fCost + " < " + lowestFCost + ")");
       if (open.get(i).fCost < lowestFCost)
       {
         //use that node and set it as best
@@ -81,12 +77,11 @@ void setup()
     //Check if the current is the end
     if (current.isEnd)
     {
-      print("Finished pathfinding");
       finishedPathfinding = true;
       break;
     }
     
-    current.currentColour = color(100, 200, 255);
+    //current.currentColour = color(100, 200, 255);
     
     //Find the best distance
     int xIndex = current.xPos/current.size;
@@ -116,27 +111,36 @@ void setup()
         isNodeInClosed(currentNeighbour) || //or it's already visited
         !currentNeighbour.isTraversable) // or not traversable
       {
-        println("Neighbour: " + i + ", was not accessible");
         continue;
       }
       
       int gCost = manhattanDistance(currentNeighbour, start);
       int hCost = manhattanDistance(currentNeighbour, end);
       int fCost = gCost + hCost;
-      println("Neighbour: " + i + "cost: " + fCost +" -- > "  + (!isNodeInOpen(currentNeighbour))  +" || " +  currentNeighbour.fCost +">"+ fCost);
       
       if (!isNodeInOpen(currentNeighbour) || currentNeighbour.fCost > fCost)
       {
-        println("Boobs");
         currentNeighbour.SetFCost(fCost, current);
         if (!isNodeInOpen(currentNeighbour))
         {
-          println("Added new node to open");
           open.add(currentNeighbour);
         }
       }
     }
+    if(open.size() == 0)
+    {
+      return;
+    }
     current = open.get(0);
+  }
+  current = end;
+  
+  if(!finishedPathfinding) return;
+  
+  while(!current.isStart)
+  {
+    current = current.from;
+    current.currentColour = color(255,255,0);
   }
 }
 
