@@ -9,6 +9,7 @@ class GridCell
   color currentColour;
   
   int fCost;
+  GridCell from;
   
   public GridCell(int size, int xPos, int yPos, 
     boolean isTraversable, boolean isEnd, boolean isStart)
@@ -21,12 +22,10 @@ class GridCell
     this.isStart = isStart;
   }
   
-  public void SetFCost(int fCost)
+  public void SetFCost(int fCost, GridCell from)
   {
-    if (this.fCost > fCost)
-    {
-      this.fCost = fCost;
-    }
+    this.from = from;
+    this.fCost = fCost;
   }
   
   public void Render()

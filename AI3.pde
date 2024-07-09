@@ -5,52 +5,146 @@ GridCell[][] cells;
 ArrayList<GridCell> closed;
 ArrayList<GridCell> open;
 
+int maxIterations = 1000;
+int currentIteration = 0;
+boolean finishedPathfinding;
+
 void setup()
 {
   size(500, 500);
   background(255, 0, 0);
   
   cells = new GridCell[gridSize][gridSize];
-  visited = new ArrayList<GridCell>();
+  open = new ArrayList<GridCell>();
+  closed = new ArrayList<GridCell>();
   
   for (int xOffset = 0; xOffset < gridSize; xOffset++)
   {
     for (int yOffset = 0; yOffset < gridSize; yOffset++)
     {
       cells[xOffset][yOffset] = new GridCell(gridCellSize, xOffset * gridCellSize, 
-        yOffset * gridCellSize, random(0, 1) > 0.2, false, false);
-      cells[xOffset][yOffset].currentColour = random(0, 1) > 0.2 ? color(255) : color(0);
+        yOffset * gridCellSize, random(0, 1) > 0.0, false, false);
+      cells[xOffset][yOffset].currentColour = random(0, 1) > 0.0 ? color(255) : color(0);
     }
   }
   
-  int xIndex = (int)random(2, gridSize - 1);
-  int yIndex = (int)random(2, gridSize - 1);
+  int endXIndex = (int)random(2, gridSize - 1);
+  int endYIndex = (int)random(2, gridSize - 1);
+  
+  GridCell end = cells[endXIndex][endYIndex];
+  end.isEnd = true;
+  end.isTraversable = true;
+  end.currentColour = color(0, 255, 0);
+  
+  GridCell start = cells[1][1];
+  start.isStart = true;
+  start.currentColour = color(0, 0, 255);
+  open.add(start);
+  
+  GridCell current = start;
+  current.SetFCost(0, null);
+  
+  println("First");
+  
+  while (currentIteration < maxIterations)
+  {
+    currentIteration ++;
+    int lowestFCost = open.get(0).fCost;
+    //Set current to lowest fCost
+    for (int i = 0; i < open.size(); i++)
+    {
+      if (open.get(i).fCost < lowestFCost)
+      {
+        lowestFCost = open.get(i).fCost;
+        current = open.get(i);
+      }
+    }
     
-  cells[xIndex][yIndex].isEnd = true;
-  cells[xIndex][yIndex].isTraversable = true;
-  cells[xIndex][yIndex].currentColour = color(0, 255, 0);
-  
-  cells[1][1].isStart = true;
-  cells[1][1].currentColour = color(0, 0, 255);
-  visited.add(cells[1][1]);
-  
-  //pathfind(1, 1, 1, 1, xIndex, yIndex);
+    //println(open.size());
+
+    removeNodeFromOpen(current);
+    closed.add(current);
+    
+    //println(open.size());
+    
+    if (current.isEnd)
+    {
+      print("Finished pathfinding");
+      finishedPathfinding = true;
+      break;
+    }
+    
+    //current.currentColour = color(100, 200, 255);
+    
+    int xIndex = current.xPos/current.size;
+    int yIndex = current.yPos/current.size;
+    
+    GridCell[] neighbours = {
+      yIndex + 1 >= gridSize ? null : cells[xIndex][yIndex + 1],
+      yIndex - 1 < 0 ? null : cells[xIndex][yIndex - 1],
+      xIndex - 1 < 0 ? null : cells[xIndex - 1][yIndex],
+      xIndex + 1 >= gridSize ? null : cells[xIndex + 1][yIndex]
+    };
+    
+    for (int i = 0; i < 4; i++)
+    {
+      GridCell currentNeighbour = neighbours[i];
+      if (currentNeighbour == null || 
+        isNodeInClosed(currentNeighbour) || 
+        !currentNeighbour.isTraversable)
+      {
+        continue;
+      }
+      
+      int gCost = manhattanDistance(currentNeighbour, start);
+      int hCost = manhattanDistance(currentNeighbour, end);
+      int fCost = gCost + hCost;
+      
+      if (!isNodeInOpen(currentNeighbour) || currentNeighbour.fCost > fCost)
+      {
+        currentNeighbour.SetFCost(fCost, current);
+        if (!isNodeInOpen(currentNeighbour))
+        {
+          println("Added new node to open");
+          open.add(currentNeighbour);
+        }
+      }
+    }
+  }
 }
 
-int manhattanDistance(int xIndex1, int yIndex1, int xIndex2, int yIndex2)
+int manhattanDistance(GridCell a, GridCell b)
 {
-  int finalXIndex = abs(xIndex1 - xIndex2);
-  int finalYIndex = abs(yIndex1 - yIndex2);
+  int finalXIndex = abs(a.xPos/a.size - b.xPos/b.size);
+  int finalYIndex = abs(a.yPos/a.size - b.yPos/b.size);
   
   return finalXIndex + finalYIndex;
 }
 
-boolean isNodeInVisited(int xIndex, int yIndex)
+void removeNodeFromOpen(GridCell cell)
 {
-  for(int i=0; i<visited.size();i++)
+  for(int i=0; i<open.size();i++)
   {
-    boolean found = (xIndex == visited.get(i).xPos/gridCellSize) && 
-      (yIndex == visited.get(i).yPos/gridCellSize);
+    //println(cell.xPos + " " + cell.yPos);
+    //println(open.get(i).xPos + " " + open.get(i).yPos);
+    
+    boolean found = (cell.xPos == open.get(i).xPos) && (cell.yPos == open.get(i).yPos);
+    if(found)
+    {
+      println("Removed");
+      open.remove(i);
+    }
+    
+    //println("Didn't find cell in open list");
+  }
+}
+
+boolean isNodeInOpen(GridCell cell)
+{
+  for(int i=0; i<open.size();i++)
+  {
+    boolean found = (cell.xPos == open.get(i).xPos) && 
+      (cell.yPos == open.get(i).yPos);
     if(found)
     {
       return true;
@@ -59,63 +153,18 @@ boolean isNodeInVisited(int xIndex, int yIndex)
   return false;
 }
 
-void pathfind(int xIndex, int yIndex, int startXIndex, int startYIndex, 
-  int destXIndex, int destYIndex)
+boolean isNodeInClosed(GridCell cell)
 {
-  if ((xIndex == destXIndex) && (yIndex == destYIndex))
+  for(int i=0; i<closed.size();i++)
   {
-    print("Finished pathfinding");
-    return;
-  }
-  
-  cells[xIndex][yIndex].currentColour = color(100);
-  
-  GridCell[] neighbours = {
-    yIndex + 1 >= gridSize ? null : cells[xIndex][yIndex + 1],
-    yIndex - 1 < 0 ? null : cells[xIndex][yIndex - 1],
-    xIndex - 1 < 0 ? null : cells[xIndex - 1][yIndex],
-    xIndex + 1 >= gridSize ? null : cells[xIndex + 1][yIndex]
-  };
-  
-  int lowestFCost = Integer.MAX_VALUE;
-  int lowestFCostXIndex = 0;
-  int lowestFCostYIndex = 0;
-  
-  for (int i = 0; i <neighbours.length; i++)
-  {
-    if (neighbours[i] == null) 
+    boolean found = (cell.xPos == closed.get(i).xPos) && 
+      (cell.yPos == closed.get(i).yPos);
+    if(found)
     {
-      continue;
-    }
-    GridCell currentNeighbour = neighbours[i];
-    int currentNeighbourXIndex = currentNeighbour.xPos/gridCellSize;
-    int currentNeighbourYIndex = currentNeighbour.yPos/gridCellSize;
-    
-    if (isNodeInVisited(currentNeighbourXIndex, currentNeighbourYIndex))
-    {
-      continue;
-    }
-    
-    int gCost = manhattanDistance(currentNeighbourXIndex, currentNeighbourYIndex, 
-      startXIndex, startYIndex);
-    int hCost = manhattanDistance(currentNeighbourXIndex, currentNeighbourYIndex, 
-      destXIndex, destYIndex);
-    int fCost = gCost + hCost;
-    
-    currentNeighbour.SetFCost(fCost);
-    visited.add(currentNeighbour);
-    
-    if (fCost < lowestFCost)
-    {
-      lowestFCost = fCost;
-      lowestFCostXIndex = currentNeighbourXIndex;
-      lowestFCostYIndex = currentNeighbourYIndex;
+      return true;
     }
   }
-  
-  pathfind(lowestFCostXIndex, lowestFCostYIndex, 
-    startXIndex, startYIndex, destXIndex, destYIndex);
-  println("Took step");
+  return false;
 }
 
 void draw()
